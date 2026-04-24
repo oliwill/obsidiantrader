@@ -1,0 +1,8 @@
+pandas
+numpy
+yfinance
+longbridge
+loguru
+python-dotenv
+matplotlib
+mcp>=1.0.0
