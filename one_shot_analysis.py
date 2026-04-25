@@ -58,9 +58,9 @@ def compute_technicals(df):
     macd_line = ema12 - ema26
     signal_line = macd_line.ewm(span=9).mean()
     macd_hist = macd_line - signal_line
-    result['macd'] = round(float(macd_line.iloc[-1]), 2)
-    result['macd_signal'] = round(float(signal_line.iloc[-1]), 2)
-    result['macd_hist'] = round(float(macd_hist.iloc[-1]), 2)
+    result['macd'] = round(float(macd_line.iloc[-1]), 2) if not pd.isna(macd_line.iloc[-1]) else None
+    result['macd_signal'] = round(float(signal_line.iloc[-1]), 2) if not pd.isna(signal_line.iloc[-1]) else None
+    result['macd_hist'] = round(float(macd_hist.iloc[-1]), 2) if not pd.isna(macd_hist.iloc[-1]) else None
 
     # Bollinger Bands
     ma20 = close.rolling(20).mean()
@@ -183,7 +183,8 @@ def main():
                     from analyzer.wyckoff import WyckoffAnalyzer
                     fund_data = fund if fund else {}
                     wa = WyckoffAnalyzer()
-                    w = wa.analyze(df, fund_data)
+                    # reset index so 'date' is accessible as a column
+                    w = wa.analyze(df.reset_index(), fund_data)
                     struct = w.details.get('structure')
                     if struct:
                         output['wyckoff'] = {
@@ -201,6 +202,15 @@ def main():
             output['kline_rows'] = 0
     except Exception as e:
         output['technicals_error'] = str(e)
+
+    # ===== Step 2: 网络搜索（新闻 + 社交 + 研报）=====
+    try:
+        from data.search import StockSearchEngine
+        se = StockSearchEngine()
+        search_results = se.search_all(code)
+        output['web_search'] = search_results
+    except Exception as e:
+        output['web_search_error'] = str(e)
 
     print(json.dumps(output, ensure_ascii=False, indent=2, default=decimal_default))
 

@@ -45,7 +45,7 @@ def suppress_stdout():
             # Flush before restoring
             try:
                 sys.stdout.flush()
-            except:
+            except Exception:
                 pass
             # Restore the original file descriptor
             os_module.dup2(saved_stdout_fd, old_stdout_fd)

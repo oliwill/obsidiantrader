@@ -4,16 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**trader-obsidian** is a stock analysis system that integrates with Obsidian as the user workbench. It replaces Alma with Claude Code as the execution engine.
+**trader-obsidian** is a stock analysis system that integrates with Obsidian as the user workbench. Claude Code is the execution engine.
 
-- **Obsidian Vault**: `C:\Users\Lzw\Downloads\Documents\obsidian\Lzw\Lzw\`
 - **Analysis Output**: Written directly to Obsidian `.md` files (no plugins needed)
-- **Input**: User drops materials in `Inbox/` folder
+- **Input**: User drops materials in the Obsidian `Inbox/` folder (path set via `OBSIDIAN_INBOX_DIR` in `.env`)
 - **Execution**: Claude Code orchestrates analysis via Python scripts
 
 ## Quick Commands
 
-All commands should be run from `C:\Users\Lzw\alma\worktrees\trader\trader-obsidian\`:
+All commands run from the project root (`/Users/al/Documents/Alma/trader/trader-obsidian/`):
 
 ```bash
 # Analyze a stock
@@ -57,15 +56,90 @@ When user asks to analyze a stock (e.g., "分析 AAPL"):
    - `wyckoff` (phase, support, resistance)
    - `wiki_summary` (historical context)
 
-3. **Do web search** for recent news if needed
+3. **Do web search** for:
+   - Recent news, earnings, announcements
+   - Short float, options IV (search "[TICKER] short interest" / "[TICKER] implied volatility")
+   - 3–5 peer companies' P/S ratios for valuation benchmarking
 
-4. **Write comprehensive analysis** covering:
-   - Current price and technical position
-   - Fundamental assessment
-   - Wyckoff phase interpretation
-   - KOL/social sentiment (from inbox materials)
-   - Key risks and catalysts
-   - Concrete signals (BUY/HOLD/SELL with targets)
+4. **Write comprehensive analysis** — mandatory sections in order:
+
+   **A. 公司与催化剂**
+   - 一句话业务描述 + 近期触发此次分析的事件
+
+   **B. 技术面**
+   - RSI / KDJ / MACD / 布林带 / 成交量比 — 表格呈现，每项附信号判断
+
+   **C. 基本面**
+   - 关键财务数字表格（营收、毛利、净亏损/净利、现金、关键比率）
+   - 增长轨迹（过去4季度 QoQ/YoY，未来1-2年分析师预期）
+
+   **D. 估值锚点（必做）**
+   - 当前 TTM P/S = 市值 ÷ 年化营收
+   - 同行 P/S 对比表（3–5家，含 NVDA/AMD 等参照系）
+   - PSG = P/S ÷ 预期收入增速%（PSG<1合理，1–2偏高，>2极度高估）
+   - 结论：安全边际判断（充足 / 偏紧 / 无安全边际）
+
+   **E. 市场结构分析（必做）**
+   - 空头比例（Short Float %）+ Days to Cover
+   - 期权 IV（与历史均值对比）
+   - 近期涨幅拆解：基本面新信息贡献 vs 技术性因素（情绪/空头回补/期权gamma）
+   - 内部人增减持（过去6个月，买入次数 vs 卖出次数 vs 金额）
+
+   **F. 风险量化（必做）**
+   - 列出 3–5 个主要风险，每条格式：
+     `风险名称 → 如果发生：收入影响 ±X%，估值影响 ±Y%，概率判断（高/中/低）`
+
+   **G. 三情景目标价（必做）**
+   - 🟢 Bull Case（概率X%）：核心假设 + 12个月目标价 $Z
+   - 🟡 Base Case（概率X%）：核心假设 + 12个月目标价 $Z
+   - 🔴 Bear Case（概率X%）：核心假设 + 12个月目标价 $Z
+   - **概率加权目标价** = Bull×P + Base×P + Bear×P
+   - 当前价 vs 加权目标价 → 隐含12个月回报%
+
+   **H. 操作格网（必做）**
+   - 表格格式，每行：价位区间 | 动作 | 仓位 | 触发条件
+   - 至少覆盖：当前价（追/不追）、第一回调位、核心建仓位、深度加仓位
+   - 注明最大仓位上限
+
+   **I. 警戒线 / 加仓信号（必做）**
+   - 🔴 警戒线（3–6条）：格式"如果 A → 减仓/清仓，原因"
+   - 🟢 加仓信号（3–6条）：格式"如果 B → 可加仓，原因"
+   - 每条必须是可观测的布尔条件（避免"如果市场好转"这类模糊表达）
+
+   **J. 关键催化剂日历**
+   - 按时间排序，每条：日期 | 事件 | 若超预期→股价反应 | 若不及预期→股价反应
+
+**报告开头必须包含 Obsidian Front Matter**：
+
+```yaml
+---
+title: "{TICKER} {评分}/100 — {核心观点简述}"
+source: claude-code
+author: "Claude Code"
+published: {YYYY-MM-DD}
+created: {YYYY-MM-DD HH:MM}
+description: "{一句话总结：如 PSG XX，12 个月目标价 $X，建仓价位 $Y}"
+tags:
+  - stock-analysis
+  - {sector}
+  - {sub-sector}
+  - 12m-target-{目标价}
+  - psg-{PSG值}
+stock_code: {TICKER.US}
+score: {评分}
+psg: {PSG值}
+target_price: {加权目标价}
+current_price: {当前价格}
+---
+```
+
+字段说明：
+- `title`：格式为 "POET 42/100 — PSG 199，12 个月目标价 $11.30（-25%）"
+- `description`：一句话精华，如 "P/S 2145x，PSG 199，无安全边际；等待 $9–10 回调"
+- `tags`：必须包含 `stock-analysis`，行业标签如 `semiconductors`，子领域如 `photonics`
+- `12m-target-{目标价}`：便于 Obsidian 搜索按目标价过滤
+- `psg-{PSG值}`：便于按估值水平过滤（如 `psg-199` 为极度高估）
+- `target_price` / `current_price`：便于 Obsidian Dataview 插件计算潜在收益
 
 5. **Write to Obsidian** using Python helper:
    ```python
@@ -77,12 +151,7 @@ When user asks to analyze a stock (e.g., "分析 AAPL"):
 
 6. **Write task file** if actionable signal:
    ```bash
-   python -c "
-   import os, sys
-   sys.path.insert(0, 'C:/Users/Lzw/alma/worktrees/trader/trader-obsidian')
-   from run_analysis import write_task
-   write_task('Review AAPL entry', 'AAPL.US', 'trade', 'Price broke MA50', 'high', '2026-04-30')
-   "
+   python -c "from run_analysis import write_task; write_task('Review AAPL entry', 'AAPL.US', 'trade', 'Price broke MA50', 'high', '2026-04-30')"
    ```
 
 7. **Update dashboard**:
@@ -137,6 +206,7 @@ The `DataManager.normalize_symbol()` function handles this automatically.
 | `data.manager.DataManager` | `normalize_symbol()`, `get_historical_data()`, `get_fundamentals()`, `get_stock_info()` | Market data |
 | `memory.manager.MemoryManager` | `init_stock_wiki()`, `append_to_timeline()`, `update_evaluation_table()`, `get_stock_context()`, `save_material()` | Wiki persistence |
 | `inbox_scanner` | `scan_inbox()`, `get_pending_analysis()`, `get_related_materials()`, `mark_processed()` | Inbox management |
+| `input.ingest` | `ingest()` | Material intake with tag indexing (`tags_index.json`); calls `MemoryManager.save_material()` internally |
 | `run_analysis` | `fetch_market_data()`, `write_analysis_to_obsidian()`, `write_task()`, `update_dashboard()` | Main orchestration |
 
 ## Analysis Output Sections

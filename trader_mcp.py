@@ -328,6 +328,83 @@ async def update_dashboard_tool() -> str:
     return f"Dashboard updated: {os.getenv('OBSIDIAN_DASHBOARD_PATH', '')}"
 
 
+@server.tool()
+async def search_stock_news_tool(stock_code: str, max_results: int = 8) -> str:
+    """
+    搜索股票最新新闻和动态
+
+    Args:
+        stock_code: 股票代码（如 "AAPL.US", "00700.HK"）
+        max_results: 最大返回条数
+
+    Returns:
+        JSON 字符串，包含新闻列表
+    """
+    from data.search import StockSearchEngine
+
+    se = StockSearchEngine()
+    results = se.search_news(stock_code, max_results=max_results)
+
+    return json.dumps(
+        {
+            "stock_code": stock_code,
+            "category": "news",
+            "count": len(results),
+            "items": [r.to_dict() for r in results],
+        },
+        ensure_ascii=False,
+        indent=2,
+    )
+
+
+@server.tool()
+async def search_stock_sentiment_tool(stock_code: str, max_results: int = 6) -> str:
+    """
+    搜索股票社交媒体讨论和市场情绪
+
+    Args:
+        stock_code: 股票代码
+        max_results: 最大返回条数
+
+    Returns:
+        JSON 字符串，包含讨论列表
+    """
+    from data.search import StockSearchEngine
+
+    se = StockSearchEngine()
+    results = se.search_sentiment(stock_code, max_results=max_results)
+
+    return json.dumps(
+        {
+            "stock_code": stock_code,
+            "category": "sentiment",
+            "count": len(results),
+            "items": [r.to_dict() for r in results],
+        },
+        ensure_ascii=False,
+        indent=2,
+    )
+
+
+@server.tool()
+async def search_stock_all_tool(stock_code: str) -> str:
+    """
+    综合搜索：新闻 + 社交 + 研报
+
+    Args:
+        stock_code: 股票代码
+
+    Returns:
+        JSON 字符串，包含三类搜索结果
+    """
+    from data.search import StockSearchEngine
+
+    se = StockSearchEngine()
+    results = se.search_all(stock_code)
+
+    return json.dumps(results, ensure_ascii=False, indent=2)
+
+
 # ========== 资源 ==========
 
 

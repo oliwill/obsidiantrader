@@ -84,7 +84,10 @@ pip install mcp
 | `get_stock_context_tool` | 获取 Wiki 上下文 | stock_code |
 | `get_stock_index_tool` | 获取股票总览 | 无 |
 | `get_recent_log_tool` | 获取最近日志 | n (可选，默认5) |
-| `analyze_stock_tool` | 触发分析（获取数据） | stock_code |
+| `analyze_stock_tool` | 触发分析（获取数据 + 网络搜索） | stock_code |
+| `search_stock_news_tool` | 搜索股票最新新闻 | stock_code, max_results (可选) |
+| `search_stock_sentiment_tool` | 搜索社交媒体情绪 | stock_code, max_results (可选) |
+| `search_stock_all_tool` | 综合搜索（新闻+社交+研报） | stock_code |
 | `write_analysis_tool` | 写入分析结果 | stock_code, stock_name, analysis_text, score, core_view |
 | `create_task_tool` | 创建任务 | title, ticker, task_type, description, priority, due_date |
 | `update_dashboard_tool` | 更新 Dashboard | 无 |

@@ -236,11 +236,11 @@ class FundamentalAnalyzer(BaseAnalyzer):
             moats.append("规模优势")
         
         # 盈利能力护城河
-        if fundamentals.get("grossMargins") or 0 > 0.4:
+        if (fundamentals.get("gross_margin") or 0) > 0.4:
             moats.append("定价权/品牌溢价")
-        
+
         # 现金创造能力
-        if fundamentals.get("freeCashflow") or 0 > 0:
+        if (fundamentals.get("free_cashflow") or 0) > 0:
             moats.append("现金创造能力")
         
         return moats if moats else ["护城河待观察"]

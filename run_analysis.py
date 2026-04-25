@@ -174,6 +174,7 @@ def write_analysis_to_obsidian(
     score: float = 0.0,
     signals: List[str] = None,
     core_view: str = "",
+    price: float = 0.0,
 ):
     """
     将分析结果写入 Obsidian
@@ -202,20 +203,15 @@ def write_analysis_to_obsidian(
     # 追加到时间线
     mm.append_to_timeline(
         stock_code=stock_code,
-        price=0.0,  # 可以从 market_data 获取
+        price=price,
         score=score,
         core_view=core_view,
         analysis_type="Claude Code 分析",
     )
 
     # 追加到研究笔记
-    wiki = mm.get_stock_wiki(stock_code)
     entry = f"\n\n### [{datetime.now().strftime('%Y-%m-%d %H:%M')}] Claude Code 分析\n\n{analysis_text}\n"
-
-    # 使用 _append_to_section
-    from memory.manager import _append_to_section
-    wiki = _append_to_section(wiki, "研究笔记", entry)
-    mm._write_file(mm._stock_wiki_path(stock_code), wiki)
+    mm.append_to_section(stock_code, "研究笔记", entry)
 
     # 更新 index
     mm.update_index(stock_code, stock_name, score)

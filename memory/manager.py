@@ -706,6 +706,14 @@ tags: {tags}
 
         self.append_log("query_save", f"研究笔记: {stock_code} - {question[:50]}")
 
+    def append_to_section(self, stock_code: str, section_name: str, entry: str):
+        """追加内容到 Wiki 的指定章节"""
+        wiki = _read_file(_stock_wiki_path(stock_code))
+        if not wiki:
+            return
+        wiki = _append_to_section(wiki, section_name, entry)
+        _write_file(_stock_wiki_path(stock_code), wiki)
+
     def find_similar_analyses(
         self, stock_name: str, analysis_type: str = "", top_k: int = 5
     ) -> List[Dict]:
@@ -852,12 +860,12 @@ tags: {tags}
                 }
 
         # 解析预测验证
-            predictions = _get_section_content(wiki, "预测验证")
-            verified = 0
-            correct = 0
-            if predictions and not predictions.startswith("（暂无"):
-                verified = len(re.findall(r"状态: ✅", predictions))
-                correct = len(re.findall(r"结果: ✅", predictions))
+        predictions = _get_section_content(wiki, "预测验证")
+        verified = 0
+        correct = 0
+        if predictions and not predictions.startswith("（暂无"):
+            verified = len(re.findall(r"状态: ✅", predictions))
+            correct = len(re.findall(r"结果: ✅", predictions))
 
         result = {
             "learned_at": _now(),

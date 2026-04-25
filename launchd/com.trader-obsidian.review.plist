@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.trader-obsidian.review</string>
+    
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/python3</string>
+        <string>/Users/al/Documents/Alma/trader/trader-obsidian/scripts/run_review.py</string>
+        <string>--notify</string>
+    </array>
+    
+    <key>WorkingDirectory</key>
+    <string>/Users/al/Documents/Alma/trader/trader-obsidian</string>
+    
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PYTHONPATH</key>
+        <string>/Users/al/Documents/Alma/trader/trader-obsidian</string>
+    </dict>
+    
+    <!-- 每天上午 9:00 运行 -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>9</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    
+    <key>RunAtLoad</key>
+    <false/>
+    
+    <key>StandardOutPath</key>
+    <string>/tmp/trader-review.log</string>
+    
+    <key>StandardErrorPath</key>
+    <string>/tmp/trader-review.err</string>
+</dict>
+</plist>

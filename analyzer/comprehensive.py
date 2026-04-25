@@ -94,7 +94,13 @@ class ComprehensiveAnalyzer(BaseAnalyzer):
     ) -> str:
         """生成综合分析摘要"""
         # 基本面观点
-        fund_view = "中性"  # simplified
+        score_f = fundamental.score
+        if score_f >= 70:
+            fund_view = "积极"
+        elif score_f >= 50:
+            fund_view = "中性"
+        else:
+            fund_view = "谨慎"
         
         # 技术面观点
         structure = wyckoff.details.get("structure")
