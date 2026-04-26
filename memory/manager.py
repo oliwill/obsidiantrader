@@ -30,35 +30,27 @@ LOG_PATH = WIKI_DIR / "log.md"
 # Wiki 模板中的标准 section 顺序
 
 WIKI_SECTIONS = [
-
     "综合评估",
-
+    "五维打分",
+    "不对称原型",
     "分析时间线",
-
     "预测验证",
-
     "关键事件",
-
     "财报预期",
-
+    "财报前情景预判",
     "流动性分析",
-
     "期权市场",
-
+    "内部人信号",
+    "SBC与稀释",
     "KOL 观点汇总",
-
     "社交情绪",
-
     "研究笔记",
-
     "交叉引用",
-
     "资料索引",
-
 ]
 
 # 评估维度
-EVAL_DIMENSIONS = ["基本面", "估值面", "技术面", "消息面", "综合"]
+EVAL_DIMENSIONS = ["行业/TAM", "护城河", "增长质量", "估值", "团队/治理", "综合"]
 
 
 # ========== 数据类 ==========
@@ -353,6 +345,22 @@ class MemoryManager:
 |------|----------|----------|------|----------|
 {eval_rows}
 
+## 五维打分
+
+| 维度 | 得分 | 子维度评分 | 更新时间 |
+|------|------|-----------|----------|
+| 行业/TAM | - | 赛道方向:-, TAM规模:-, 资金流向:- | - |
+| 护城河 | - | 技术/IP:-, 客户锁定:-, 规模:- | - |
+| 增长质量 | - | 历史:-, 前瞻:-, 质量:- | - |
+| 估值 | - | PSG:-, 同行溢价:-, 安全边际:- | - |
+| 团队/治理 | - | CEO:-, 董事会:-, 内部人:-, SBC:- | - |
+| **综合** | - | 判定:- | - |
+
+## 不对称原型
+
+- 当前原型: （暂无）
+- 非对称赔率方向: （暂无）
+
 ## 分析时间线
 
 > 每次分析后追加，记录当时的价格、评分、核心观点
@@ -365,58 +373,76 @@ class MemoryManager:
 
 {placeholder}
 
-## 关键事件
-
-> 影响股价的重要事件，按时间倒序
-
-{placeholder}
-
-## 财报预期
-
-> 下次财报日期、分析师共识预期、历史 beat/miss 记录
-
-{placeholder}
-
-## 流动性分析
-
-> 做空比例、机构持仓、Days to Cover、换手率
-
-{placeholder}
-
-## 期权市场
-
-> Put/Call Ratio、Max Pain、ATM IV、异常活动
-
-{placeholder}
-
-## KOL 观点汇总
-
-> 来自 Twitter KOL 的观点，标注来源和时间
-
-{placeholder}
-
-## 社交情绪
-
-> Reddit、X/Twitter、Polymarket 情绪汇总
-
-{placeholder}
-
-## 研究笔记
-
-> 分析过程中的深度问答，知识沉淀
-
-{placeholder}
-
-## 交叉引用
-
-> 相关股票、竞品、同行业公司
-
-{placeholder}
-
-## 资料索引
-
-> 已摄入的原始资料列表
-
+## 关键事件
+
+> 影响股价的重要事件，按时间倒序
+
+{placeholder}
+
+## 财报预期
+
+> 下次财报日期、分析师共识预期、历史 beat/miss 记录
+
+{placeholder}
+
+## 财报前情景预判
+
+> 财报日期 30 天内填入：Hyper-beat / In-line / Miss 三情景概率及加权预期股价
+
+{placeholder}
+
+## 流动性分析
+
+> 做空比例、机构持仓、Days to Cover、换手率
+
+{placeholder}
+
+## 期权市场
+
+> Put/Call Ratio、Max Pain、ATM IV、异常活动
+
+{placeholder}
+
+## 内部人信号
+
+> 过去 6 个月 CEO/CFO 买入/卖出次数、净金额、信号评分
+
+{placeholder}
+
+## SBC与稀释
+
+> SBC 占收入比例、过去 12 个月股本稀释率、再融资风险评估
+
+{placeholder}
+
+## KOL 观点汇总
+
+> 来自 Twitter KOL 的观点，标注来源和时间
+
+{placeholder}
+
+## 社交情绪
+
+> Reddit、X/Twitter、Polymarket 情绪汇总
+
+{placeholder}
+
+## 研究笔记
+
+> 分析过程中的深度问答，知识沉淀
+
+{placeholder}
+
+## 交叉引用
+
+> 相关股票、竞品、同行业公司
+
+{placeholder}
+
+## 资料索引
+
+> 已摄入的原始资料列表
+
 {placeholder}
 """
         _write_file(path, content)
