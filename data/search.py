@@ -302,13 +302,13 @@ class StockSearchEngine:
         return all_results[:max_results]
 
     def search_sentiment(self, stock_code: str, max_results: int = 6) -> List[SearchResult]:
-        """搜索社交媒体讨论和情绪"""
+        """搜索社交媒体讨论和情绪（Twitter/X + Reddit）"""
         ticker = self._normalize_for_search(stock_code)
 
         queries = [
-            f"${ticker} twitter sentiment",
-            f"{ticker} reddit stock discussion",
-            f"{ticker} 股民讨论",
+            f"${ticker} twitter sentiment 2026",
+            f"{ticker} reddit stock discussion 2026",
+            f"{ticker} wallstreetbets discussion",
         ]
 
         all_results = []
@@ -320,6 +320,46 @@ class StockSearchEngine:
                     all_results.append(r)
             if len(all_results) >= max_results:
                 break
+
+        return all_results[:max_results]
+
+    def search_reddit(self, stock_code: str, max_results: int = 5) -> List[SearchResult]:
+        """专门搜索 Reddit 讨论（finance-sentiment skill）"""
+        ticker = self._normalize_for_search(stock_code)
+        queries = [
+            f"site:reddit.com {ticker} stock",
+            f"site:reddit.com {ticker} wallstreetbets",
+            f"site:reddit.com {ticker} investing",
+        ]
+
+        all_results = []
+        for query in queries:
+            results = self.search(query, max_results=max_results)
+            for r in results:
+                r.source = "reddit"
+                if not any(existing.link == r.link for existing in all_results):
+                    all_results.append(r)
+            if len(all_results) >= max_results:
+                break
+
+        return all_results[:max_results]
+
+    def search_polymarket(self, stock_code: str, max_results: int = 3) -> List[SearchResult]:
+        """搜索 Polymarket 预测市场（finance-sentiment skill）"""
+        ticker = self._normalize_for_search(stock_code)
+        # Polymarket 通常用事件形式交易，直接搜可能结果有限
+        queries = [
+            f"site:polymarket.com {ticker}",
+            f"{ticker} prediction market odds",
+        ]
+
+        all_results = []
+        for query in queries:
+            results = self.search(query, max_results=max_results)
+            for r in results:
+                r.source = "polymarket"
+                if not any(existing.link == r.link for existing in all_results):
+                    all_results.append(r)
 
         return all_results[:max_results]
 

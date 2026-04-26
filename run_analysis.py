@@ -175,6 +175,11 @@ def write_analysis_to_obsidian(
     signals: List[str] = None,
     core_view: str = "",
     price: float = 0.0,
+    earnings: Dict = None,
+    liquidity: Dict = None,
+    options: Dict = None,
+    peers: List[Dict] = None,
+    web_search: Dict = None,
 ):
     """
     将分析结果写入 Obsidian
@@ -186,6 +191,12 @@ def write_analysis_to_obsidian(
         score: 综合评分 0-100
         signals: 交易信号列表
         core_view: 核心观点（用于时间线）
+        price: 当前价格
+        earnings: 财报预期数据 (earnings-preview)
+        liquidity: 流动性数据 (stock-liquidity)
+        options: 期权数据 (options-payoff)
+        peers: 相关性 peer 列表 (stock-correlation)
+        web_search: 网络搜索结果（含 reddit/polymarket）
     """
     mm = MemoryManager()
 
@@ -208,6 +219,59 @@ def write_analysis_to_obsidian(
         core_view=core_view,
         analysis_type="Claude Code 分析",
     )
+
+    # ===== 写入新模块数据 =====
+
+    # 1. 财报预期 (earnings-preview)
+    if earnings and not earnings.get("error"):
+        from data.earnings import EarningsCalendar
+        ec = EarningsCalendar()
+        md = ec.format_earnings_markdown(earnings)
+        if md and md.strip() != "## 财报预期\n\n":
+            mm.append_to_section(stock_code, "财报预期", md)
+
+    # 2. 流动性分析 (stock-liquidity)
+    if liquidity and not liquidity.get("error"):
+        from data.liquidity import LiquidityAnalyzer
+        la = LiquidityAnalyzer()
+        md = la.to_markdown(liquidity)
+        if md and md.strip() != "## 流动性分析\n\n":
+            mm.append_to_section(stock_code, "流动性分析", md)
+
+    # 3. 期权市场 (options-payoff)
+    if options and not options.get("error"):
+        from data.options import OptionsAnalyzer
+        oa = OptionsAnalyzer()
+        md = oa.to_markdown(options)
+        if md and md.strip() != "## 期权市场\n\n":
+            mm.append_to_section(stock_code, "期权市场", md)
+
+    # 4. 交叉引用 (stock-correlation)
+    if peers:
+        from data.correlation import CorrelationAnalyzer
+        ca = CorrelationAnalyzer()
+        md = ca.to_markdown(peers, stock_code)
+        if md and md.strip() != "## 交叉引用\n\n":
+            mm.append_to_section(stock_code, "交叉引用", md)
+
+    # 5. 社交情绪 (finance-sentiment)
+    if web_search:
+        now_str = datetime.now().strftime('%Y-%m-%d %H:%M')
+        lines = [f"\n\n### [{now_str}] 社交情绪扫描\n\n"]
+        reddit = web_search.get("reddit", [])
+        if reddit:
+            lines.append("**Reddit 讨论:**\n")
+            for item in reddit[:3]:
+                lines.append(f"- {item.get('title', '')[:80]}")
+            lines.append("")
+        polymarket = web_search.get("polymarket", [])
+        if polymarket:
+            lines.append("**Polymarket 赔率:**\n")
+            for item in polymarket[:3]:
+                lines.append(f"- {item.get('title', '')[:80]}")
+            lines.append("")
+        if len(lines) > 1:
+            mm.append_to_section(stock_code, "社交情绪", "\n".join(lines))
 
     # 追加到研究笔记
     entry = f"\n\n### [{datetime.now().strftime('%Y-%m-%d %H:%M')}] Claude Code 分析\n\n{analysis_text}\n"

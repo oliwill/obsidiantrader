@@ -418,6 +418,13 @@ class DataManager:
                 "industry": "industry",
                 "employees": "fullTimeEmployees",
                 "business_summary": "longBusinessSummary",
+                # 分析师目标价 (yfinance-data skill)
+                "target_mean_price": "targetMeanPrice",
+                "target_high_price": "targetHighPrice",
+                "target_low_price": "targetLowPrice",
+                "analyst_count": "numberOfAnalystOpinions",
+                "recommendation_key": "recommendationKey",
+                "recommendation_mean": "recommendationMean",
             }
             for key, yf_key in yf_fields.items():
                 val = info.get(yf_key)

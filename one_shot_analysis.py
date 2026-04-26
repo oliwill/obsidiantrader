@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-一次性获取所有分析数据：Wiki历史 + 行情 + 基本面 + K线 + 技术指标 + 威科夫
-用法: python one_shot_analysis.py 00100
+一次性获取所有分析数据：Wiki历史 + 行情 + 基本面 + K线 + 技术指标 + 威科夫 + 财报 + 流动性 + 期权 + 相关性 + ETF
+用法: python one_shot_analysis.py AAPL
 """
 import sys, os, json
 sys.stdout.reconfigure(encoding='utf-8')
@@ -11,6 +11,12 @@ os.environ['TQDM_DISABLE'] = '1'
 
 from dotenv import load_dotenv
 load_dotenv()
+
+# Redirect loguru to stderr so it doesn't contaminate JSON stdout
+import sys
+from loguru import logger
+logger.remove()
+logger.add(sys.stderr, level="WARNING")
 
 from decimal import Decimal
 import pandas as pd
@@ -166,6 +172,14 @@ def main():
     except Exception as e:
         output['fundamentals_error'] = str(e)
 
+    # ===== Step 1.5: 财报预期 (earnings-preview) =====
+    try:
+        from data.earnings import EarningsCalendar
+        ec = EarningsCalendar()
+        output['earnings'] = ec.get_earnings_info(code)
+    except Exception as e:
+        output['earnings_error'] = str(e)
+
     # ===== Step 1b: K线 + 技术指标 =====
     try:
         df = dm.get_historical_data(code, period='1y')
@@ -203,14 +217,59 @@ def main():
     except Exception as e:
         output['technicals_error'] = str(e)
 
-    # ===== Step 2: 网络搜索（新闻 + 社交 + 研报）=====
+    # ===== Step 1c: 流动性分析 (stock-liquidity) =====
+    try:
+        from data.liquidity import LiquidityAnalyzer
+        la = LiquidityAnalyzer()
+        output['liquidity'] = la.analyze(code)
+    except Exception as e:
+        output['liquidity_error'] = str(e)
+
+    # ===== Step 1d: 期权数据 (options-payoff) =====
+    try:
+        from data.options import OptionsAnalyzer
+        oa = OptionsAnalyzer()
+        output['options'] = oa.analyze(code)
+    except Exception as e:
+        output['options_error'] = str(e)
+
+    # ===== Step 2: 网络搜索（新闻 + 社交 + 研报 + Reddit + Polymarket）=====
     try:
         from data.search import StockSearchEngine
         se = StockSearchEngine()
         search_results = se.search_all(code)
+        # 增加 Reddit 和 Polymarket
+        try:
+            reddit_results = se.search_reddit(code)
+            search_results['reddit'] = [r.to_dict() for r in reddit_results]
+        except Exception:
+            pass
+        try:
+            poly_results = se.search_polymarket(code)
+            search_results['polymarket'] = [r.to_dict() for r in poly_results]
+        except Exception:
+            pass
         output['web_search'] = search_results
     except Exception as e:
         output['web_search_error'] = str(e)
+
+    # ===== Step 3: 相关性分析 (stock-correlation) =====
+    try:
+        from data.correlation import CorrelationAnalyzer
+        ca = CorrelationAnalyzer()
+        output['peers'] = ca.find_peers(code, top_n=5)
+    except Exception as e:
+        output['peers_error'] = str(e)
+
+    # ===== Step 4: ETF 检测 (etf-premium) =====
+    try:
+        from data.etf import ETFAnalyzer
+        ea = ETFAnalyzer()
+        etf_data = ea.analyze(code)
+        if etf_data.get('is_etf'):
+            output['etf'] = etf_data
+    except Exception as e:
+        output['etf_error'] = str(e)
 
     print(json.dumps(output, ensure_ascii=False, indent=2, default=decimal_default))
 

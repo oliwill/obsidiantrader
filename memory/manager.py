@@ -28,15 +28,33 @@ INDEX_PATH = WIKI_DIR / "index.md"
 LOG_PATH = WIKI_DIR / "log.md"
 
 # Wiki 模板中的标准 section 顺序
+
 WIKI_SECTIONS = [
+
     "综合评估",
+
     "分析时间线",
+
     "预测验证",
+
     "关键事件",
+
+    "财报预期",
+
+    "流动性分析",
+
+    "期权市场",
+
     "KOL 观点汇总",
+
+    "社交情绪",
+
     "研究笔记",
+
     "交叉引用",
+
     "资料索引",
+
 ]
 
 # 评估维度
@@ -347,34 +365,58 @@ class MemoryManager:
 
 {placeholder}
 
-## 关键事件
-
-> 影响股价的重要事件，按时间倒序
-
-{placeholder}
-
-## KOL 观点汇总
-
-> 来自 Twitter KOL 的观点，标注来源和时间
-
-{placeholder}
-
-## 研究笔记
-
-> 分析过程中的深度问答，知识沉淀
-
-{placeholder}
-
-## 交叉引用
-
-> 相关股票、竞品、同行业公司
-
-{placeholder}
-
-## 资料索引
-
-> 已摄入的原始资料列表
-
+## 关键事件
+
+> 影响股价的重要事件，按时间倒序
+
+{placeholder}
+
+## 财报预期
+
+> 下次财报日期、分析师共识预期、历史 beat/miss 记录
+
+{placeholder}
+
+## 流动性分析
+
+> 做空比例、机构持仓、Days to Cover、换手率
+
+{placeholder}
+
+## 期权市场
+
+> Put/Call Ratio、Max Pain、ATM IV、异常活动
+
+{placeholder}
+
+## KOL 观点汇总
+
+> 来自 Twitter KOL 的观点，标注来源和时间
+
+{placeholder}
+
+## 社交情绪
+
+> Reddit、X/Twitter、Polymarket 情绪汇总
+
+{placeholder}
+
+## 研究笔记
+
+> 分析过程中的深度问答，知识沉淀
+
+{placeholder}
+
+## 交叉引用
+
+> 相关股票、竞品、同行业公司
+
+{placeholder}
+
+## 资料索引
+
+> 已摄入的原始资料列表
+
 {placeholder}
 """
         _write_file(path, content)
