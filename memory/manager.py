@@ -8,22 +8,49 @@ Memory Manager - Karpathy LLM Wiki 模式
   - 知识是增量编译的，不是每次重新推导
   - 每次摄入资料后更新 Wiki 页面，而非只追加
   - 小规模用 index.md 导航，不需要向量数据库
+
+工具函数已拆分到：
+  - utils.py: 路径、时间、文件 I/O
+  - section_parser.py: Markdown section 解析
 """
 
 import os
-import re
-import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass, field
 
+# 导入统一配置
+from config import Config
 
-# ========== 路径常量 ==========
+# 导入工具模块
+from .utils import (
+    _ensure_dirs,
+    _stock_wiki_path,
+    _stock_materials_dir,
+    _now,
+    _today,
+    _today_compact,
+    _short_id,
+    _read_file,
+    _write_file,
+    _append_file,
+    _parse_frontmatter,
+)
 
-BASE_DIR = Path(os.getenv("WIKI_BASE_DIR", "./data"))
-WIKI_DIR = BASE_DIR / os.getenv("WIKI_SUBDIR", "wiki")
-MATERIALS_DIR = BASE_DIR / os.getenv("MATERIALS_SUBDIR", "materials")
+from .section_parser import (
+    _find_section,
+    _get_section_content,
+    _replace_section,
+    _append_to_section,
+)
+
+
+# ========== 路径常量（从 Config 获取）==========
+
+BASE_DIR = Config.WIKI_BASE_DIR
+WIKI_DIR = Config.get_wiki_dir()
+MATERIALS_DIR = Config.get_materials_dir()
 INDEX_PATH = WIKI_DIR / "index.md"
 LOG_PATH = WIKI_DIR / "log.md"
 
@@ -78,141 +105,9 @@ class LintIssue:
     message: str
 
 
-# ========== 工具函数 ==========
-
-def _ensure_dirs():
-    """确保目录存在"""
-    WIKI_DIR.mkdir(parents=True, exist_ok=True)
-    MATERIALS_DIR.mkdir(parents=True, exist_ok=True)
-
-
-def _stock_wiki_path(stock_code: str) -> Path:
-    """股票 Wiki 页面路径（OKLO.US → OKLO_US.md）"""
-    safe_name = stock_code.replace(".", "_")
-    return WIKI_DIR / f"{safe_name}.md"
-
-
-def _stock_materials_dir(stock_code: str) -> Path:
-    """股票原始资料目录"""
-    safe_name = stock_code.replace(".", "_")
-    d = MATERIALS_DIR / safe_name
-    d.mkdir(parents=True, exist_ok=True)
-    return d
-
-
-def _now() -> str:
-    return datetime.now().strftime("%Y-%m-%d %H:%M")
-
-
-def _today() -> str:
-    return datetime.now().strftime("%Y-%m-%d")
-
-
-def _today_compact() -> str:
-    return datetime.now().strftime("%Y%m%d")
-
-
-def _short_id() -> str:
-    return str(uuid.uuid4())[:8]
-
-
-def _read_file(path: Path) -> str:
-    """安全读取文件"""
-    if path.exists():
-        return path.read_text(encoding="utf-8")
-    return ""
-
-
-def _write_file(path: Path, content: str):
-    """安全写入文件"""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
-
-
-def _append_file(path: Path, content: str):
-    """安全追加文件"""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "a", encoding="utf-8") as f:
-        f.write(content)
-
-
-# ========== Markdown Section 解析器 ==========
-
-def _find_section(wiki_text: str, section_name: str) -> Tuple[int, int]:
-    """
-    找到 ## section_name 在 wiki_text 中的范围。
-    返回 (start, end) 字符索引，包含 section header。
-    找不到返回 (-1, -1)。
-    """
-    pattern = rf"^## {re.escape(section_name)}\s*$"
-    match = re.search(pattern, wiki_text, re.MULTILINE)
-    if not match:
-        return -1, -1
-
-    start = match.start()
-    # 找下一个 ## section 或文件末尾
-    rest = wiki_text[match.end():]
-    next_match = re.search(r"^## ", rest, re.MULTILINE)
-    if next_match:
-        end = match.end() + next_match.start()
-    else:
-        end = len(wiki_text)
-
-    return start, end
-
-
-def _get_section_content(wiki_text: str, section_name: str) -> str:
-    """获取某个 section 的内容（不含 header）"""
-    start, end = _find_section(wiki_text, section_name)
-    if start == -1:
-        return ""
-    # 跳过 header 行
-    header_end = wiki_text.index("\n", start) + 1
-    return wiki_text[header_end:end].strip()
-
-
-def _replace_section(wiki_text: str, section_name: str, new_content: str) -> str:
-    """替换某个 section 的内容（保留 header）"""
-    start, end = _find_section(wiki_text, section_name)
-    if start == -1:
-        # section 不存在，追加到文件末尾
-        return wiki_text.rstrip() + f"\n\n## {section_name}\n\n{new_content}\n"
-
-    header_line_end = wiki_text.index("\n", start) + 1
-    return wiki_text[:header_line_end] + f"\n{new_content}\n" + wiki_text[end:]
-
-
-def _append_to_section(wiki_text: str, section_name: str, entry: str) -> str:
-    """在某个 section 末尾追加内容"""
-    content = _get_section_content(wiki_text, section_name)
-    # 去掉占位文字（匹配「（暂无...）」任意位置）
-    content = re.sub(r'（暂无[^）]*）', '', content).strip()
-    if content:
-        new_content = content.rstrip() + "\n" + entry
-    else:
-        new_content = entry
-    return _replace_section(wiki_text, section_name, new_content)
-
-
-def _parse_frontmatter(text: str) -> Dict[str, str]:
-    """解析 YAML frontmatter"""
-    meta = {}
-    if not text.startswith("---"):
-        return meta
-    end = text.find("---", 3)
-    if end == -1:
-        return meta
-    for line in text[3:end].strip().split("\n"):
-        if ": " in line:
-            k, v = line.split(": ", 1)
-            meta[k.strip()] = v.strip()
-    return meta
-
-
 # ====================================================================
-# MemoryManager 主类
+# MemoryManager 主类（完整保留，从原文件第 219 行开始）
 # ====================================================================
-
 class MemoryManager:
     """
     基于 Markdown Wiki 的记忆管理器

@@ -18,13 +18,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, List
 
-from dotenv import load_dotenv
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 
-# 加载环境变量
-load_dotenv()
+# 导入统一配置（config.py 会自动加载 .env）
+from config import Config
 
 # 添加项目路径到 sys.path
 PROJECT_DIR = Path(__file__).parent
@@ -203,38 +202,53 @@ async def analyze_stock_tool(stock_code: str) -> str:
     Returns:
         JSON 字符串，包含市场数据、Wiki 上下文、Inbox 材料
     """
-    import subprocess
-
-    script_dir = PROJECT_DIR
-    timeout = int(os.getenv("ANALYSIS_TIMEOUT", "30"))
-    cmd = [sys.executable, "run_analysis.py", stock_code]
+    from data.analysis_pipeline import generate_analysis
+    from inbox_scanner import get_related_materials
+    from memory.manager import MemoryManager
 
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            encoding="utf-8",
-            cwd=script_dir,
-        )
+        # 直接调用分析流水线（不再通过 subprocess）
+        market_data = generate_analysis(stock_code)
+        market_data["_source"] = "mcp_analysis_pipeline"
 
-        if result.returncode == 0 and result.stdout:
-            return result.stdout
-        else:
-            error_info = {
-                "error": "subprocess_error",
-                "returncode": result.returncode,
-                "stderr": result.stderr[:500] if result.stderr else "",
+        # 加载 Wiki 上下文
+        mm = MemoryManager()
+        wiki = mm.get_stock_context(stock_code)
+        wiki_context = {
+            "_source": "wiki_context",
+            "wiki_status": "HAS_HISTORY" if wiki else "NO_HISTORY",
+            "wiki_summary": wiki[:1000] if wiki else "",
+            "wiki_length": len(wiki) if wiki else 0,
+        }
+
+        # 加载 Inbox 材料
+        items = get_related_materials(stock_code)
+        inbox_materials = [
+            {
+                "filename": item.filename,
+                "title": item.title,
+                "source_type": item.source_type,
+                "body_snippet": item.body[:500] if item.body else "",
+                "stock_codes": item.stock_codes,
             }
-            return json.dumps(error_info, ensure_ascii=False)
+            for item in items[:20]
+        ]
 
-    except subprocess.TimeoutExpired:
-        error_info = {
-            "error": "timeout",
+        result = {
             "stock_code": stock_code,
-            "timeout_used": timeout,
-            "message": f"Market data fetch timed out after {timeout}s",
+            "timestamp": datetime.now().isoformat(),
+            "market_data": market_data,
+            "wiki_context": wiki_context,
+            "inbox_materials": inbox_materials,
+        }
+
+        return json.dumps(result, ensure_ascii=False, indent=2)
+
+    except Exception as e:
+        error_info = {
+            "error": "analysis_failed",
+            "stock_code": stock_code,
+            "message": str(e),
         }
         return json.dumps(error_info, ensure_ascii=False)
 
@@ -325,7 +339,7 @@ async def update_dashboard_tool() -> str:
     from run_analysis import update_dashboard
 
     update_dashboard()
-    return f"Dashboard updated: {os.getenv('OBSIDIAN_DASHBOARD_PATH', '')}"
+    return f"Dashboard updated: {Config.OBSIDIAN_DASHBOARD_PATH}"
 
 
 @server.tool()

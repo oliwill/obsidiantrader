@@ -22,13 +22,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 
-from dotenv import load_dotenv
-
-load_dotenv()
+# 导入统一配置（config.py 会自动加载 .env）
+from config import Config
 
 # ========== 路径配置 ==========
 
-INBOX_DIR = Path(os.getenv("OBSIDIAN_INBOX_DIR", ""))
+INBOX_DIR = Config.OBSIDIAN_INBOX_DIR
 DATA_MANAGER_IMPORT = "from data.manager import DataManager"
 
 

@@ -21,11 +21,12 @@ from datetime import datetime
 PROJECT_DIR = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_DIR))
 
-from dotenv import load_dotenv
-load_dotenv()
+# 导入统一配置（config.py 会自动加载 .env）
+from config import Config
 
 from inbox_scanner import scan_inbox, get_pending_analysis, mark_processed
-from run_analysis import fetch_market_data, load_wiki_context, load_inbox_materials
+from run_analysis import load_wiki_context, load_inbox_materials
+from data.analysis_pipeline import generate_analysis
 from notification import notify, notify_success, notify_error
 
 
@@ -65,7 +66,7 @@ def process_pending_items(dry_run: bool = False) -> dict:
         # 对每个股票代码获取数据
         for code in item.stock_codes:
             try:
-                market_data = fetch_market_data(code)
+                market_data = generate_analysis(code)
                 wiki_ctx = load_wiki_context(code)
                 materials = load_inbox_materials(code)
 

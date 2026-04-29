@@ -15,15 +15,13 @@
 """
 import json
 import os
-import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from dotenv import load_dotenv
-
-load_dotenv()
+# 导入统一配置（config.py 会自动加载 .env）
+from config import Config
 
 # 导入本地模块
 from memory.manager import MemoryManager
@@ -34,69 +32,13 @@ from inbox_scanner import (
     mark_processed,
     InboxItem,
 )
+# 直接导入分析流水线（替代 subprocess 调用）
+from data.analysis_pipeline import generate_analysis
 
-# ========== 路径配置 ==========
+# ========== 路径配置（从 Config 获取）==========
 
-TASKS_DIR = Path(os.getenv("OBSIDIAN_TASKS_DIR", ""))
-DASHBOARD_PATH = Path(os.getenv("OBSIDIAN_DASHBOARD_PATH", ""))
-ANALYSIS_TIMEOUT = int(os.getenv("ANALYSIS_TIMEOUT", "30"))
-
-
-# ========== 数据获取（子进程，带 timeout） ==========
-
-
-def fetch_market_data(stock_code: str, timeout: int = ANALYSIS_TIMEOUT) -> dict:
-    """
-    获取市场数据（在子进程中运行，带 timeout 保护）
-
-    Args:
-        stock_code: 股票代码
-        timeout: 超时秒数
-
-    Returns:
-        dict: 解析后的 JSON 数据，或错误信息
-    """
-    script_dir = Path(__file__).parent
-    cmd = [sys.executable, "one_shot_analysis.py", stock_code]
-
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            encoding="utf-8",
-            cwd=script_dir,
-        )
-
-        if result.returncode == 0 and result.stdout:
-            try:
-                data = json.loads(result.stdout)
-                data["_source"] = "market_data"
-                return data
-            except json.JSONDecodeError as e:
-                return {
-                    "_source": "market_data",
-                    "error": "json_parse",
-                    "detail": str(e),
-                    "stdout": result.stdout[:500],
-                }
-        else:
-            return {
-                "_source": "market_data",
-                "error": "subprocess_error",
-                "returncode": result.returncode,
-                "stderr": result.stderr[:500] if result.stderr else "",
-            }
-
-    except subprocess.TimeoutExpired:
-        return {
-            "_source": "market_data",
-            "error": "timeout",
-            "stock_code": stock_code,
-            "timeout_used": timeout,
-            "message": f"Market data fetch timed out after {timeout}s. May have partial data from Yahoo Finance fallback.",
-        }
+TASKS_DIR = Config.OBSIDIAN_TASKS_DIR
+DASHBOARD_PATH = Config.OBSIDIAN_DASHBOARD_PATH
 
 
 # ========== 上下文收集 ==========
@@ -425,11 +367,14 @@ def scan_and_process():
         for code in codes:
             print(f"\n  Analyzing {code}...")
 
-            # 获取市场数据
-            market_data = fetch_market_data(code)
-            print(f"    Market data: {market_data.get('error', 'OK')}")
-            if "error" in market_data:
-                print(f"    Warning: {market_data.get('error', 'Unknown error')}")
+            # 获取市场数据（直接调用模块，不再通过 subprocess）
+            market_data = generate_analysis(code)
+            market_data["_source"] = "analysis_pipeline"
+            print(f"    Market data: {market_data.get('stock_info_error') or market_data.get('technicals_error') or 'OK'}")
+
+            if any(k.endswith('_error') for k in market_data.keys()):
+                errors = [k for k in market_data.keys() if k.endswith('_error')]
+                print(f"    Warnings: {', '.join(errors)}")
 
             # 加载 Wiki 上下文
             wiki_context = load_wiki_context(code)
@@ -491,8 +436,9 @@ def main():
         # 分析单只股票
         stock_code = command
 
-        # 获取市场数据
-        market_data = fetch_market_data(stock_code)
+        # 获取市场数据（直接调用模块，不再通过 subprocess）
+        market_data = generate_analysis(stock_code)
+        market_data["_source"] = "analysis_pipeline"
         wiki_context = load_wiki_context(stock_code)
         inbox_materials = load_inbox_materials(stock_code)
 

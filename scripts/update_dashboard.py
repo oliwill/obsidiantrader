@@ -19,8 +19,8 @@ from datetime import datetime
 PROJECT_DIR = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_DIR))
 
-from dotenv import load_dotenv
-load_dotenv()
+# 导入统一配置（config.py 会自动加载 .env）
+from config import Config
 
 from run_analysis import update_dashboard
 from notification import notify, notify_success, notify_error
