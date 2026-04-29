@@ -12,20 +12,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Quick Commands
 
-All commands run from the project root (`/Users/al/Documents/Alma/trader/trader-obsidian/`):
+All commands run from the project root:
 
 ```bash
-# Analyze a stock
-python run_analysis.py AAPL
+# Quick analysis (recommended) - generates formatted report and writes to Obsidian
+python scripts/analyze_stock.py AAPL
 
-# Process all pending Inbox items
-python run_analysis.py --scan
-
-# Update Dashboard only
-python run_analysis.py --dashboard
-
-# Scan Inbox status
-python run_analysis.py --inbox
+# Full analysis workflow (Claude Code orchestration)
+python run_analysis.py AAPL        # Outputs JSON for Claude Code analysis
+python run_analysis.py --scan     # Process all pending Inbox items
+python run_analysis.py --dashboard  # Update Dashboard only
+python run_analysis.py --inbox     # Scan Inbox status
 ```
 
 ## Obsidian Vault Structure
@@ -253,11 +250,14 @@ The `DataManager.normalize_symbol()` function handles this automatically.
 
 | Module | Class/Function | Purpose |
 |--------|----------------|---------|
+| `scripts.analyze_stock` | `main()` | One-click analysis entry point |
+| `analyzer.report_generator.ReportGenerator` | `generate()` | Unified report formatting (tables + emojis) |
+| `data.analysis_pipeline` | `generate_analysis()` | Complete data pipeline (all modules) |
 | `data.manager.DataManager` | `normalize_symbol()`, `get_historical_data()`, `get_fundamentals()`, `get_stock_info()` | Market data |
 | `memory.manager.MemoryManager` | `init_stock_wiki()`, `append_to_timeline()`, `update_evaluation_table()`, `get_stock_context()`, `save_material()` | Wiki persistence |
 | `inbox_scanner` | `scan_inbox()`, `get_pending_analysis()`, `get_related_materials()`, `mark_processed()` | Inbox management |
-| `input.ingest` | `ingest()` | Material intake with tag indexing (`tags_index.json`); calls `MemoryManager.save_material()` internally |
-| `run_analysis` | `fetch_market_data()`, `write_analysis_to_obsidian()`, `write_task()`, `update_dashboard()` | Main orchestration |
+| `input.ingest` | `ingest()` | Material intake with tag indexing (`tags_index.json`) |
+| `run_analysis` | `write_analysis_to_obsidian()`, `write_task()`, `update_dashboard()` | Main orchestration |
 
 ## Analysis Output Sections
 

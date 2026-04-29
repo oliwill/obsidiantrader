@@ -85,19 +85,16 @@ LONGBRIDGE_ACCESS_TOKEN=
 ## Commands
 
 ```bash
-# Analyze a single stock
-python run_analysis.py AAPL        # US stock
-python run_analysis.py 00700       # HK stock (auto-normalized to 00700.HK)
-python run_analysis.py 603906      # A-share (auto-normalized to SH603906)
+# Quick analysis (recommended) - generates formatted report and writes to Obsidian
+python scripts/analyze_stock.py AAPL        # US stock
+python scripts/analyze_stock.py 00700       # HK stock (auto-normalized to 00700.HK)
+python scripts/analyze_stock.py 603906      # A-share (auto-normalized to SH603906)
 
-# Process all pending Inbox items
-python run_analysis.py --scan
-
-# Rebuild Dashboard only
-python run_analysis.py --dashboard
-
-# Show Inbox status
-python run_analysis.py --inbox
+# Full analysis workflow (Claude Code orchestration)
+python run_analysis.py AAPL        # Outputs JSON for Claude Code analysis
+python run_analysis.py --scan     # Process all pending Inbox items
+python run_analysis.py --dashboard  # Rebuild Dashboard only
+python run_analysis.py --inbox     # Show Inbox status
 ```
 
 ## Obsidian Vault Structure
@@ -138,12 +135,16 @@ After processing, `processed: true` and `processed_at` are appended automaticall
 
 ```
 trader-obsidian/
-├── run_analysis.py       # main entry point
+├── run_analysis.py       # main entry point (Claude Code orchestration)
+├── scripts/
+│   └── analyze_stock.py  # one-click analysis with formatted report
 ├── analyzer/
+│   ├── report_generator.py  # unified report formatting (tables + emojis)
 │   ├── fundamental.py    # fundamental analysis engine
 │   ├── wyckoff.py        # Wyckoff phase detection
 │   └── comprehensive.py  # combined scoring
 ├── data/
+│   ├── analysis_pipeline.py  # complete data pipeline
 │   ├── manager.py        # DataManager: Longbridge API + Yahoo Finance fallback
 │   ├── earnings.py       # earnings calendar + surprise history
 │   ├── options.py        # options chain: IV, GEX, unusual activity
