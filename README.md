@@ -109,6 +109,8 @@ vault/
 │   │   └── TSLA_US.md
 │   ├── Materials/      ← raw material archives per stock
 │   │   └── TSLA_US/
+│   ├── Charts/         ← auto-generated Wyckoff charts
+│   │   └── INVZ_wyckoff.png
 │   └── Tasks/          ← auto-created trade/research tasks
 └── Dashboard.md        ← portfolio overview, auto-updated
 ```
@@ -142,6 +144,7 @@ trader-obsidian/
 │   ├── report_generator.py  # unified report formatting (tables + emojis)
 │   ├── fundamental.py    # fundamental analysis engine
 │   ├── wyckoff.py        # Wyckoff phase detection
+│   ├── wyckoff_chart.py  # Wyckoff chart visualization (price, MA, zones, phases)
 │   └── comprehensive.py  # combined scoring
 ├── data/
 │   ├── analysis_pipeline.py  # complete data pipeline
