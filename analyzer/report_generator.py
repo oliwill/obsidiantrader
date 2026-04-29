@@ -128,8 +128,11 @@ class ReportGenerator:
 
 ### Wyckoff 分析
 - **阶段**：{wyckoff.get('phase', 'N/A')}
-- **区间**：${wyckoff.get('support', 0):.2f} - ${wyckoff.get('resistance', 0):.2f}
+- **区间**：${{wyckoff.get('support', 0):.2f}} - ${{wyckoff.get('resistance', 0):.2f}}
 - **置信度**：{wyckoff.get('confidence', 0)}%
+
+### Wyckoff 图表
+![Wyckoff分析](../Charts/{stock_code.replace('.', '_')}_wyckoff.png)
 
 ---
 

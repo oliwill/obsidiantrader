@@ -7,6 +7,7 @@
 整合了 report_generator.py，统一生成格式化报告
 """
 import sys
+import os
 from pathlib import Path
 
 project_root = Path(__file__).parent.parent
@@ -15,6 +16,64 @@ sys.path.insert(0, str(project_root))
 from run_analysis import write_analysis_to_obsidian
 from data.analysis_pipeline import generate_analysis
 from analyzer.report_generator import ReportGenerator
+from data.manager import DataManager
+
+
+def generate_wyckoff_chart(stock_code: str, df, market_data: dict) -> None:
+    """
+    生成威科夫图表并保存到 Obsidian Charts 目录
+
+    Args:
+        stock_code: 股票代码
+        df: K线数据 DataFrame
+        market_data: 市场数据字典
+    """
+    try:
+        from analyzer.wyckoff import WyckoffAnalyzer
+        from analyzer.wyckoff_chart import WyckoffChartRenderer
+
+        # 运行威科夫分析获取完整结构
+        wa = WyckoffAnalyzer()
+        fund_data = market_data.get('fundamentals', {})
+        wyckoff_result = wa.analyze(df.reset_index(), fund_data)
+
+        # 获取完整结构
+        structure = wyckoff_result.details.get('structure')
+        if not structure or not structure.phases:
+            print("威科夫结构不完整，跳过图表生成")
+            return
+
+        # 确定输出路径
+        from dotenv import load_dotenv
+        load_dotenv()
+
+        wiki_base = os.getenv('WIKI_BASE_DIR')
+        if not wiki_base:
+            print("未设置 WIKI_BASE_DIR，跳过图表生成")
+            return
+
+        charts_dir = Path(wiki_base) / "Charts"
+        charts_dir.mkdir(parents=True, exist_ok=True)
+
+        # 生成文件名（将 . 替换为 _）
+        safe_code = stock_code.replace('.', '_')
+        output_path = charts_dir / f"{safe_code}_wyckoff.png"
+
+        # 绘制图表
+        renderer = WyckoffChartRenderer()
+        renderer.render(
+            df=df,
+            structure=structure,
+            output_path=str(output_path),
+            title=f"{stock_code} 威科夫分析"
+        )
+
+        print(f"威科夫图表已生成: {output_path}")
+
+    except ImportError as e:
+        print(f"威科夫图表模块不可用: {e}")
+    except Exception as e:
+        print(f"生成威科夫图表失败: {e}")
 
 
 def main():
@@ -26,6 +85,15 @@ def main():
 
     # 获取分析数据
     market_data = generate_analysis(stock_code)
+
+    # 生成威科夫图表
+    try:
+        dm = DataManager()
+        df = dm.get_historical_data(stock_code, period="2y")  # 获取 2 年数据用于威科夫分析
+        if df is not None and len(df) > 100:  # 至少需要 100 天数据
+            generate_wyckoff_chart(stock_code, df, market_data)
+    except Exception as e:
+        print(f"威科夫图表生成失败（跳过）: {e}")
 
     # 提取关键信息
     stock_info = market_data.get('stock_info', {})
