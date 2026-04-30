@@ -142,13 +142,15 @@ trader-obsidian/
 │   └── analyze_stock.py  # one-click analysis with formatted report
 ├── analyzer/
 │   ├── report_generator.py  # unified report formatting (tables + emojis)
-│   ├── fundamental.py    # fundamental analysis engine
+│   ├── fundamental.py    # fundamental analysis + 6-dimension moat scoring
+│   ├── trading_grid.py   # Fibonacci levels, ATR stops, R/R ratios
 │   ├── wyckoff.py        # Wyckoff phase detection
 │   ├── wyckoff_chart.py  # Wyckoff chart visualization (price, MA, zones, phases)
 │   └── comprehensive.py  # combined scoring
 ├── data/
 │   ├── analysis_pipeline.py  # complete data pipeline
 │   ├── manager.py        # DataManager: Longbridge API + Yahoo Finance fallback
+│   ├── sentiment_analyzer.py  # sentiment scoring: news, social, fear/greed
 │   ├── earnings.py       # earnings calendar + surprise history
 │   ├── options.py        # options chain: IV, GEX, unusual activity
 │   ├── liquidity.py      # short interest, ADTV, market impact

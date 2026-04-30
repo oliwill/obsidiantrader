@@ -253,6 +253,8 @@ The `DataManager.normalize_symbol()` function handles this automatically.
 | `scripts.analyze_stock` | `main()` | One-click analysis entry point |
 | `analyzer.report_generator.ReportGenerator` | `generate()` | Unified report formatting (tables + emojis) |
 | `analyzer.wyckoff_chart.WyckoffChartRenderer` | `render()` | Wyckoff chart visualization (price, MA, zones, phases, events) |
+| `analyzer.trading_grid.TradingGridGenerator` | `generate()` | Trading grid with Fibonacci levels, ATR stops, R/R ratios |
+| `data.sentiment_analyzer.SentimentAnalyzer` | `analyze()` | Sentiment scoring: news, social, fear/greed index |
 | `data.analysis_pipeline` | `generate_analysis()` | Complete data pipeline (all modules) |
 | `data.manager.DataManager` | `normalize_symbol()`, `get_historical_data()`, `get_fundamentals()`, `get_stock_info()` | Market data |
 | `memory.manager.MemoryManager` | `init_stock_wiki()`, `append_to_timeline()`, `update_evaluation_table()`, `get_stock_context()`, `save_material()` | Wiki persistence |
