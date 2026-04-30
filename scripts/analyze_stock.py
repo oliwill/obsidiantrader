@@ -86,6 +86,22 @@ def main():
     # 获取分析数据
     market_data = generate_analysis(stock_code)
 
+    # 运行基本面分析（补充护城河评分）
+    try:
+        from analyzer.fundamental import FundamentalAnalyzer
+        import pandas as pd
+        fa = FundamentalAnalyzer()
+        fund_result = fa.analyze(
+            pd.DataFrame(),
+            market_data.get('fundamentals', {})
+        )
+        # 将护城河分析结果合并到 fundamentals
+        if 'business' in fund_result.details:
+            market_data['fundamentals']['moat'] = fund_result.details['business'].get('moat')
+            market_data['fundamentals']['moat_indicators'] = fund_result.details['business'].get('moat_indicators', [])
+    except Exception as e:
+        print(f"护城河分析失败（跳过）: {e}")
+
     # 生成威科夫图表
     try:
         dm = DataManager()

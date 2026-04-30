@@ -50,17 +50,17 @@ class ReportGenerator:
         # 生成各章节
         sections = []
 
-        sections.append(cls._section_1_overview(stock_code, stock_info, technicals, fundamentals, liquidity, options, wyckoff, earnings))
+        sections.append(cls._section_1_overview(stock_code, stock_info, technicals, fundamentals, liquidity, options, wyckoff, earnings, web_search))
         sections.append(cls._section_2_technical(technicals, wyckoff))
         sections.append(cls._section_3_fundamental(fundamentals))
-        sections.append(cls._section_4_market_structure(liquidity, options))
+        sections.append(cls._section_4_market_structure(liquidity, options, web_search))
         sections.append(cls._section_5_catalysts(fundamentals, earnings, web_search))
         sections.append(cls._section_6_trading_plan(stock_info, technicals, fundamentals, wyckoff))
 
         return "\n\n".join(sections)
 
     @classmethod
-    def _section_1_overview(cls, stock_code: str, stock_info: Dict, technicals: Dict, fundamentals: Dict, liquidity: Dict, options: Dict, wyckoff: Dict, earnings: Dict) -> str:
+    def _section_1_overview(cls, stock_code: str, stock_info: Dict, technicals: Dict, fundamentals: Dict, liquidity: Dict, options: Dict, wyckoff: Dict, earnings: Dict, web_search: Dict) -> str:
         """第一部分：核心观点"""
         name = stock_info.get('name', 'Unknown')
         sector = stock_info.get('sector', '-')
@@ -138,6 +138,10 @@ class ReportGenerator:
 
 ## 三、基本面分析
 
+### 护城河分析
+
+{cls._format_moat_analysis(fundamentals)}
+
 ### 估值水平
 | 指标 | 数值 | 评价 |
 |------|------|------|
@@ -164,7 +168,13 @@ class ReportGenerator:
 
 ---
 
-## 四、市场结构
+## 四、市场情绪
+
+{cls._get_sentiment_analysis(web_search)}
+
+---
+
+## 五、市场结构
 
 ### 流动性分析
 | 指标 | 数值 | 评价 |
@@ -195,18 +205,12 @@ class ReportGenerator:
 ### 当前状态
 {cls._get_action_emoji(wyckoff_score)} | 综合评分 {wyckoff_score}/100
 
-### 价格网格
-| 类型 | 价格 | 理由 |
-|------|------|------|
-| 强支撑 | ${technicals.get('support_20d', 0):.2f} | 20日低点 |
-| 第一买点 | ${wyckoff.get('support', 0):.2f} | Wyckoff 支撑 |
-| 当前价格 | ${price:.2f} | - |
-| 第一阻力 | ${technicals.get('resistance_20d', 0):.2f} | 20日高点 |
-| 目标价 | ${target_mean:.2f} | 分析师均值 |
+### 交易网格
+{cls._get_trading_grid(stock_info, technicals, fundamentals, wyckoff)}
 
 ### 仓位管理
 - **建议仓位**：{cls._get_position_size(wyckoff_score)}
-- **止损位**：${technicals.get('support_20d', 0):.2f}
+- **止损位**：基于 ATR 2.5x 或 ${technicals.get('support_20d', 0):.2f}
 
 ---
 
@@ -224,7 +228,7 @@ class ReportGenerator:
         return ""
 
     @classmethod
-    def _section_4_market_structure(cls, liquidity: Dict, options: Dict) -> str:
+    def _section_4_market_structure(cls, liquidity: Dict, options: Dict, web_search: Dict = None) -> str:
         """第四部分：市场结构（已合并到第一部分）"""
         return ""
 
@@ -371,3 +375,82 @@ class ReportGenerator:
     @classmethod
     def _get_position_size(cls, score: float) -> str:
         return "2-3%" if score >= 60 else "1-2%" if score >= 40 else "0%"
+
+    @classmethod
+    def _get_sentiment_analysis(cls, web_search: Dict) -> str:
+        """生成情绪分析"""
+        try:
+            from data.sentiment_analyzer import SentimentAnalyzer
+            analyzer = SentimentAnalyzer()
+            result = analyzer.analyze(web_search)
+            return analyzer.format_result(result)
+        except Exception as e:
+            return f"情绪分析暂不可用: {e}"
+
+    @classmethod
+    def _get_trading_grid(
+        cls,
+        stock_info: Dict,
+        technicals: Dict,
+        fundamentals: Dict,
+        wyckoff: Dict
+    ) -> str:
+        """生成交易网格"""
+        try:
+            from analyzer.trading_grid import TradingGridGenerator
+            generator = TradingGridGenerator()
+            levels = generator.generate(stock_info, technicals, fundamentals, wyckoff)
+            return generator.format_grid(levels)
+        except Exception as e:
+            return f"交易网格生成失败: {e}"
+
+    @classmethod
+    def _format_moat_analysis(cls, fundamentals: Dict) -> str:
+        """格式化护城河分析"""
+        moat = fundamentals.get("moat")
+        if not moat:
+            return "> 护城河分析暂不可用"
+
+        # 处理 dataclass 或 dict 格式
+        if hasattr(moat, 'dimensions'):
+            # Dataclass 对象
+            dimensions = moat.dimensions
+            overall_score = moat.overall_score
+            overall_rating = moat.overall_rating
+            summary = moat.summary
+        else:
+            # Dict 格式
+            dimensions = moat.get("dimensions", [])
+            overall_score = moat.get("overall_score", 0)
+            overall_rating = moat.get("overall_rating", "-")
+            summary = moat.get("summary", "")
+
+        if not dimensions:
+            return "> 护城河分析暂不可用"
+
+        # 构建评分表格
+        lines = [
+            f"**综合评分**: {overall_score}/10 ({overall_rating})",
+            "",
+            "| 维度 | 评分 | 评级 | 关键证据 |",
+            "|------|------|------|----------|",
+        ]
+
+        for d in dimensions:
+            if hasattr(d, 'score'):
+                name, score, rating, evidence = d.name, d.score, d.rating, d.evidence
+            else:
+                name = d.get("name", "-")
+                score = d.get("score", 0)
+                rating = d.get("rating", "-")
+                evidence = d.get("evidence", "-")
+
+            emoji = "🟢" if score >= 7 else "🟡" if score >= 5 else "🔴"
+            lines.append(
+                f"| {name} | {emoji} {score:.1f} | {rating} | {evidence} |"
+            )
+
+        lines.append("")
+        lines.append(f"**总结**: {summary}")
+
+        return "\n".join(lines)

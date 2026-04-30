@@ -63,6 +63,24 @@ class ValuationContext:
     historical_pb_high: float = 5
 
 
+@dataclass
+class MoatDimension:
+    """护城河维度评分"""
+    name: str
+    score: float  # 0-10
+    rating: str
+    evidence: str
+
+
+@dataclass
+class MoatAnalysis:
+    """护城河分析结果"""
+    overall_score: float  # 0-10
+    overall_rating: str
+    dimensions: List[MoatDimension]
+    summary: str
+
+
 class FundamentalAnalyzer(BaseAnalyzer):
     """
     基本面分析器
@@ -217,6 +235,9 @@ class FundamentalAnalyzer(BaseAnalyzer):
             size = "微型风险"
             size_rating = Rating.POOR
         
+        # 执行护城河深度分析
+        moat_analysis = self._assess_moat(fundamentals)
+
         return {
             "sector": sector,
             "industry": industry,
@@ -224,26 +245,353 @@ class FundamentalAnalyzer(BaseAnalyzer):
             "market_cap_rating": size_rating.value,
             "employees": employees,
             "business_summary": summary[:500] if summary else "暂无",
-            "moat_indicators": self._assess_moat(fundamentals)
+            "moat": moat_analysis,
+            "moat_indicators": [d.name for d in moat_analysis.dimensions if d.score >= 6]
         }
     
-    def _assess_moat(self, fundamentals: Dict) -> List[str]:
-        """评估护城河"""
-        moats = []
-        
-        # 规模效应
-        if fundamentals.get("market_cap", 0) > 100e9:
-            moats.append("规模优势")
-        
-        # 盈利能力护城河
-        if (fundamentals.get("gross_margin") or 0) > 0.4:
-            moats.append("定价权/品牌溢价")
+    def _assess_moat(self, fundamentals: Dict) -> MoatAnalysis:
+        """
+        评估护城河 - 6维度量化评分系统
 
-        # 现金创造能力
-        if (fundamentals.get("free_cashflow") or 0) > 0:
-            moats.append("现金创造能力")
-        
-        return moats if moats else ["护城河待观察"]
+        维度：
+        1. 技术壁垒 (Tech Barrier) - R&D投入、专利密度
+        2. 品牌优势 (Brand Strength) - 毛利率溢价、ROE
+        3. 规模效应 (Scale Advantage) - 市值、营收规模
+        4. 网络效应 (Network Effect) - 用户增长、平台属性
+        5. 客户锁定 (Customer Lock-in) - 转换成本、复购率
+        6. 可持续性 (Sustainability) - 现金流稳定性、增长持续性
+        """
+        dimensions = []
+
+        # 1. 技术壁垒评分
+        tech_score = self._rate_tech_barrier(fundamentals)
+        dimensions.append(MoatDimension(
+            name="技术壁垒",
+            score=tech_score,
+            rating=self._score_to_rating(tech_score),
+            evidence=self._tech_evidence(fundamentals, tech_score)
+        ))
+
+        # 2. 品牌优势评分
+        brand_score = self._rate_brand_strength(fundamentals)
+        dimensions.append(MoatDimension(
+            name="品牌优势",
+            score=brand_score,
+            rating=self._score_to_rating(brand_score),
+            evidence=self._brand_evidence(fundamentals, brand_score)
+        ))
+
+        # 3. 规模效应评分
+        scale_score = self._rate_scale_advantage(fundamentals)
+        dimensions.append(MoatDimension(
+            name="规模效应",
+            score=scale_score,
+            rating=self._score_to_rating(scale_score),
+            evidence=self._scale_evidence(fundamentals, scale_score)
+        ))
+
+        # 4. 网络效应评分
+        network_score = self._rate_network_effect(fundamentals)
+        dimensions.append(MoatDimension(
+            name="网络效应",
+            score=network_score,
+            rating=self._score_to_rating(network_score),
+            evidence=self._network_evidence(fundamentals, network_score)
+        ))
+
+        # 5. 客户锁定评分
+        lockin_score = self._rate_customer_lockin(fundamentals)
+        dimensions.append(MoatDimension(
+            name="客户锁定",
+            score=lockin_score,
+            rating=self._score_to_rating(lockin_score),
+            evidence=self._lockin_evidence(fundamentals, lockin_score)
+        ))
+
+        # 6. 可持续性评分
+        sustain_score = self._rate_sustainability(fundamentals)
+        dimensions.append(MoatDimension(
+            name="可持续性",
+            score=sustain_score,
+            rating=self._score_to_rating(sustain_score),
+            evidence=self._sustain_evidence(fundamentals, sustain_score)
+        ))
+
+        # 计算综合评分 (加权平均)
+        weights = {
+            "技术壁垒": 0.20,
+            "品牌优势": 0.20,
+            "规模效应": 0.15,
+            "网络效应": 0.15,
+            "客户锁定": 0.15,
+            "可持续性": 0.15,
+        }
+
+        overall_score = sum(
+            d.score * weights.get(d.name, 1/6)
+            for d in dimensions
+        )
+
+        overall_rating = self._score_to_rating(overall_score)
+
+        # 生成总结
+        strong_dims = [d.name for d in dimensions if d.score >= 7]
+        weak_dims = [d.name for d in dimensions if d.score < 4]
+
+        if overall_score >= 7:
+            summary = f"护城河深厚，核心优势：{'、'.join(strong_dims)}"
+        elif overall_score >= 5:
+            summary = f"护城河中等，{'、'.join(strong_dims) if strong_dims else '有一定竞争优势'}"
+        elif overall_score >= 3:
+            summary = f"护城河较弱，需关注：{'、'.join(weak_dims) if weak_dims else '竞争力可持续性'}"
+        else:
+            summary = "护城河薄弱，竞争优势不明显"
+
+        return MoatAnalysis(
+            overall_score=round(overall_score, 1),
+            overall_rating=overall_rating,
+            dimensions=dimensions,
+            summary=summary
+        )
+
+    # ========== 护城河各维度评分方法 ==========
+
+    def _rate_tech_barrier(self, fundamentals: Dict) -> float:
+        """技术壁垒评分 (0-10)"""
+        score = 5.0  # 基础分
+
+        # R&D投入比例 (如果数据可用)
+        rd_ratio = fundamentals.get("rd_ratio", 0)
+        if rd_ratio > 0.15:
+            score += 2.5
+        elif rd_ratio > 0.08:
+            score += 1.5
+        elif rd_ratio > 0.03:
+            score += 0.5
+
+        # 毛利率高通常意味着技术溢价
+        gross_margin = fundamentals.get("gross_margin", 0)
+        if gross_margin > 0.6:
+            score += 2.0
+        elif gross_margin > 0.4:
+            score += 1.0
+
+        # 高ROE可能来自技术壁垒
+        roe = fundamentals.get("roe", 0)
+        if roe > 0.20:
+            score += 0.5
+
+        return min(10.0, score)
+
+    def _rate_brand_strength(self, fundamentals: Dict) -> float:
+        """品牌优势评分 (0-10)"""
+        score = 5.0
+
+        # 毛利率是品牌溢价的直接体现
+        gross_margin = fundamentals.get("gross_margin", 0)
+        if gross_margin > 0.5:
+            score += 3.0
+        elif gross_margin > 0.35:
+            score += 2.0
+        elif gross_margin > 0.20:
+            score += 1.0
+
+        # 净利率反映品牌带来的定价权
+        profit_margin = fundamentals.get("profit_margin", 0)
+        if profit_margin > 0.15:
+            score += 1.5
+        elif profit_margin > 0.08:
+            score += 0.5
+
+        # 市值规模 (大品牌通常市值更大)
+        market_cap = fundamentals.get("market_cap", 0)
+        if market_cap > 100e9:
+            score += 0.5
+
+        return min(10.0, score)
+
+    def _rate_scale_advantage(self, fundamentals: Dict) -> float:
+        """规模效应评分 (0-10)"""
+        score = 5.0
+
+        # 市值规模
+        market_cap = fundamentals.get("market_cap", 0)
+        if market_cap > 500e9:
+            score += 3.0
+        elif market_cap > 100e9:
+            score += 2.0
+        elif market_cap > 10e9:
+            score += 1.0
+
+        # 营收规模 (如果数据可用)
+        revenue = fundamentals.get("revenue", 0)
+        if revenue > 50e9:
+            score += 1.5
+        elif revenue > 10e9:
+            score += 0.5
+
+        # 运营利润率反映规模效应
+        operating_margin = fundamentals.get("operating_margin", 0)
+        if operating_margin > 0.20:
+            score += 1.0
+
+        return min(10.0, score)
+
+    def _rate_network_effect(self, fundamentals: Dict) -> float:
+        """网络效应评分 (0-10)"""
+        score = 5.0
+
+        # 行业判断 (科技/平台类公司更可能有网络效应)
+        sector = (fundamentals.get("sector") or "").lower()
+        industry = (fundamentals.get("industry") or "").lower()
+
+        network_sectors = ["technology", "communication", "software", "platform", "internet"]
+        is_network_sector = any(s in sector or s in industry for s in network_sectors)
+
+        if is_network_sector:
+            score += 2.0
+
+        # 营收增长快可能暗示网络效应
+        revenue_growth = fundamentals.get("revenue_growth", 0)
+        if revenue_growth > 0.30:
+            score += 2.0
+        elif revenue_growth > 0.15:
+            score += 1.0
+
+        # 高毛利率 + 高增长 = 可能的网络效应
+        gross_margin = fundamentals.get("gross_margin", 0)
+        if gross_margin > 0.5 and revenue_growth > 0.20:
+            score += 1.0
+
+        return min(10.0, score)
+
+    def _rate_customer_lockin(self, fundamentals: Dict) -> float:
+        """客户锁定评分 (0-10)"""
+        score = 5.0
+
+        # 高毛利率 + 稳定收入 = 客户锁定
+        gross_margin = fundamentals.get("gross_margin", 0)
+        revenue_growth = fundamentals.get("revenue_growth", 0)
+
+        if gross_margin > 0.4:
+            score += 1.5
+
+        # 稳定的增长意味着客户留存好
+        if 0.05 < revenue_growth < 0.25:
+            score += 1.0
+
+        # 高ROE可能来自客户粘性
+        roe = fundamentals.get("roe", 0)
+        if roe > 0.15:
+            score += 1.5
+        elif roe > 0.10:
+            score += 0.5
+
+        # 低负债 + 高现金流 = 商业模式健康
+        debt_equity = fundamentals.get("debt_equity", 0)
+        if debt_equity < 50:
+            score += 1.0
+
+        return min(10.0, score)
+
+    def _rate_sustainability(self, fundamentals: Dict) -> float:
+        """可持续性评分 (0-10)"""
+        score = 5.0
+
+        # 现金流稳定性
+        free_cashflow = fundamentals.get("free_cashflow", 0)
+        if free_cashflow > 1e9:
+            score += 2.5
+        elif free_cashflow > 0:
+            score += 1.5
+
+        # 健康的财务结构
+        current_ratio = fundamentals.get("current_ratio", 0)
+        if current_ratio > 2:
+            score += 1.5
+        elif current_ratio > 1.5:
+            score += 0.5
+
+        debt_equity = fundamentals.get("debt_equity", 0)
+        if debt_equity < 30:
+            score += 1.5
+        elif debt_equity < 60:
+            score += 0.5
+
+        # 持续的增长能力
+        revenue_growth = fundamentals.get("revenue_growth", 0)
+        earnings_growth = fundamentals.get("earnings_growth", 0)
+        if revenue_growth > 0.10 and earnings_growth > 0.10:
+            score += 1.0
+
+        return min(10.0, score)
+
+    # ========== 评分辅助方法 ==========
+
+    def _score_to_rating(self, score: float) -> str:
+        """分数转评级"""
+        if score >= 8: return "优秀"
+        elif score >= 6: return "良好"
+        elif score >= 4: return "一般"
+        elif score >= 2: return "较弱"
+        return "薄弱"
+
+    def _tech_evidence(self, fundamentals: Dict, score: float) -> str:
+        """技术壁垒证据说明"""
+        rd_ratio = fundamentals.get("rd_ratio", 0)
+        gm = fundamentals.get("gross_margin", 0)
+        if score >= 7:
+            return f"R&D投入{rd_ratio*100:.1f}%，毛利率{gm*100:.1f}%，技术溢价显著"
+        elif score >= 5:
+            return f"有一定技术积累，毛利率{gm*100:.1f}%"
+        return "技术壁垒不明显，产品同质化风险"
+
+    def _brand_evidence(self, fundamentals: Dict, score: float) -> str:
+        """品牌优势证据说明"""
+        gm = fundamentals.get("gross_margin", 0)
+        pm = fundamentals.get("profit_margin", 0)
+        if score >= 7:
+            return f"强品牌定价权，毛利率{gm*100:.1f}%，净利率{pm*100:.1f}%"
+        elif score >= 5:
+            return f"品牌有一定认知度，毛利率{gm*100:.1f}%"
+        return "品牌溢价能力有限，价格竞争激烈"
+
+    def _scale_evidence(self, fundamentals: Dict, score: float) -> str:
+        """规模效应证据说明"""
+        mc = fundamentals.get("market_cap", 0) / 1e9
+        if score >= 7:
+            return f"行业龙头，市值${mc:.0f}B，规模优势明显"
+        elif score >= 5:
+            return f"中等规模，市值${mc:.0f}B"
+        return "规模较小，成本优势有限"
+
+    def _network_evidence(self, fundamentals: Dict, score: float) -> str:
+        """网络效应证据说明"""
+        rg = fundamentals.get("revenue_growth", 0)
+        if score >= 7:
+            return f"强网络效应，营收增长{rg*100:.1f}%，用户自驱动增长"
+        elif score >= 5:
+            return f"有一定平台属性，营收增长{rg*100:.1f}%"
+        return "网络效应不明显，线性增长模式"
+
+    def _lockin_evidence(self, fundamentals: Dict, score: float) -> str:
+        """客户锁定证据说明"""
+        roe = fundamentals.get("roe", 0)
+        if score >= 7:
+            return f"高客户粘性，ROE {roe*100:.1f}%，转换成本高"
+        elif score >= 5:
+            return f"客户留存尚可，ROE {roe*100:.1f}%"
+        return "客户忠诚度一般，易被替代"
+
+    def _sustain_evidence(self, fundamentals: Dict, score: float) -> str:
+        """可持续性证据说明"""
+        fcf = fundamentals.get("free_cashflow", 0) / 1e6
+        de = fundamentals.get("debt_equity", 0)
+        if score >= 7:
+            return f"商业模式稳健，FCF ${fcf:.0f}M，负债率{de:.1f}%"
+        elif score >= 5:
+            return f"经营基本稳定，FCF ${fcf:.0f}M"
+        return "现金跑道有限，需关注融资能力"
     
     def _analyze_financial_health(self, metrics: FinancialMetrics) -> Dict:
         """分析财务健康与盈利能力"""
@@ -505,8 +853,12 @@ class FundamentalAnalyzer(BaseAnalyzer):
         # 财务结构权重 15%
         structure_score = financial["financial_structure"]["score"]
         
-        # 业务质量权重 10%
-        business_score = 50 if business["market_cap_rating"] == "优秀" else 40
+        # 业务质量权重 10% - 使用护城河综合评分
+        moat = business.get("moat")
+        if moat:
+            business_score = moat.overall_score * 10  # 0-10分 -> 0-100分
+        else:
+            business_score = 50 if business["market_cap_rating"] == "优秀" else 40
         
         total = (profitability_score * 0.3 +
                 valuation_score * 0.25 +
