@@ -105,17 +105,18 @@ python run_analysis.py --inbox     # Show Inbox status
 vault/
 ├── Inbox/              ← drop materials here
 │   └── NVDA_note.md
-├── Trader/
-│   ├── Analysis/       ← auto-managed stock wikis
+├── 4_Trader/           ← adjust prefix to match your vault numbering
+│   ├── Analysis/       ← auto-managed stock wikis + weekly review reports
 │   │   ├── AAPL_US.md
-│   │   └── TSLA_US.md
+│   │   └── 复盘_20260510.md
 │   ├── Materials/      ← raw material archives per stock
 │   │   └── TSLA_US/
 │   ├── Charts/         ← auto-generated Wyckoff charts
-│   │   └── INVZ_wyckoff.png
 │   └── Tasks/          ← auto-created trade/research tasks
 └── Dashboard.md        ← portfolio overview, auto-updated
 ```
+
+> **Note**: The `4_Trader/` prefix matches a typical Obsidian folder-numbered vault. Set `WIKI_SUBDIR` and `MATERIALS_SUBDIR` in `.env` to match your actual structure.
 
 ## Inbox Material Format
 
@@ -163,7 +164,12 @@ trader-obsidian/
 │   └── ingest.py         # material intake with tag indexing
 ├── inbox_scanner.py      # scans Inbox/ for pending analysis
 ├── skills/               # agent workflow checklists (think/check/hunt/learn)
-└── backtest/             # signal validation against historical prices
+└── backtest/
+    ├── core.py           # BacktestEngine, BacktestResult, SignalPerformance
+    ├── runner.py         # BacktestRunner: batch execution + wiki integration
+    ├── review.py         # ReviewScheduler: daily review pipeline
+    ├── framework_analyzer.py  # FrameworkAnalyzer: pattern analysis + framework suggestions
+    └── report.py         # ReportGenerator: markdown/CSV/chart outputs
 ```
 
 ## Data Sources
@@ -171,9 +177,9 @@ trader-obsidian/
 | Source | Used For | Requires |
 |---|---|---|
 | Yahoo Finance | Fundamentals, history, options, earnings | Nothing (default) |
-| Longbridge API | Real-time quotes, HK/CN stocks, K-lines | API credentials in `.env` |
+| Longbridge API | Real-time quotes, HK/CN stocks, K-lines | `pip3 install longbridge` + API credentials in `.env` |
 
-The system silently falls back to Yahoo Finance if Longbridge credentials are absent or the API times out.
+The system silently falls back to Yahoo Finance if Longbridge credentials are absent or the API times out. Get credentials at [open.longportapp.com](https://open.longportapp.com/).
 
 ## Skills (Agent Workflows)
 

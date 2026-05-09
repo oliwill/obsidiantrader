@@ -13,6 +13,9 @@ from contextlib import contextmanager
 
 import yfinance as yf
 from loguru import logger
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 @contextmanager

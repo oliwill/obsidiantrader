@@ -1,14 +1,14 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-**trader-obsidian** is a stock analysis system that integrates with Obsidian as the user workbench. Claude Code is the execution engine.
+**trader-obsidian** is a stock analysis system that integrates with Obsidian as the user workbench. Codex is the execution engine.
 
 - **Analysis Output**: Written directly to Obsidian `.md` files (no plugins needed)
 - **Input**: User drops materials in the Obsidian `Inbox/` folder (path set via `OBSIDIAN_INBOX_DIR` in `.env`)
-- **Execution**: Claude Code orchestrates analysis via Python scripts
+- **Execution**: Codex orchestrates analysis via Python scripts
 
 ## Quick Commands
 
@@ -18,14 +18,11 @@ All commands run from the project root:
 # Quick analysis (recommended) - generates formatted report and writes to Obsidian
 python scripts/analyze_stock.py AAPL
 
-# Full analysis workflow (Claude Code orchestration)
-python run_analysis.py AAPL        # Outputs JSON for Claude Code analysis
+# Full analysis workflow (Codex orchestration)
+python run_analysis.py AAPL        # Outputs JSON for Codex analysis
 python run_analysis.py --scan     # Process all pending Inbox items
 python run_analysis.py --dashboard  # Update Dashboard only
 python run_analysis.py --inbox     # Scan Inbox status
-
-# Weekly review (also runs automatically every Saturday 10:00 via launchd)
-python scripts/weekly_review.py --notify
 ```
 
 ## Obsidian Vault Structure
@@ -153,8 +150,8 @@ When user asks to analyze a stock (e.g., "分析 AAPL"):
 ```yaml
 ---
 title: "{TICKER} {评分}/100 — {核心观点简述}"
-source: claude-code
-author: "Claude Code"
+source: Codex
+author: "Codex"
 published: {YYYY-MM-DD}
 created: {YYYY-MM-DD HH:MM}
 description: "{一句话总结：如 PSG XX，12 个月目标价 $X，建仓价位 $Y}"
@@ -277,8 +274,6 @@ The `DataManager.normalize_symbol()` function handles this automatically.
 | `inbox_scanner` | `scan_inbox()`, `get_pending_analysis()`, `get_related_materials()`, `mark_processed()` | Inbox management |
 | `input.ingest` | `ingest()` | Material intake with tag indexing (`tags_index.json`) |
 | `run_analysis` | `write_analysis_to_obsidian()`, `write_task()`, `update_dashboard()` | Main orchestration |
-| `backtest.framework_analyzer.FrameworkAnalyzer` | `analyze()` | Pattern analysis on backtest results → framework suggestions |
-| `scripts.weekly_review` | `run_weekly_review()` | Weekly review pipeline: backtest + framework suggestions + Obsidian report |
 
 ## Analysis Output Sections
 

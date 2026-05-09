@@ -12,6 +12,7 @@ cp launchd/*.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.trader-obsidian.inbox.plist
 launchctl load ~/Library/LaunchAgents/com.trader-obsidian.review.plist
 launchctl load ~/Library/LaunchAgents/com.trader-obsidian.dashboard.plist
+launchctl load ~/Library/LaunchAgents/com.trader-obsidian.weekly-review.plist
 
 # 3. 查看状态
 launchctl list | grep trader-obsidian
@@ -23,13 +24,15 @@ launchctl unload ~/Library/LaunchAgents/com.trader-obsidian.inbox.plist
 | 任务 | 频率 | plist 文件 |
 |------|------|-----------|
 | Inbox 扫描 | 每 30 分钟 | `com.trader-obsidian.inbox.plist` |
-| 回测复盘 | 每天 9:00 | `com.trader-obsidian.review.plist` |
+| 日常回测复盘 | 每天 9:00 | `com.trader-obsidian.review.plist` |
 | Dashboard 更新 | 每天 8:00 | `com.trader-obsidian.dashboard.plist` |
+| **周复盘 + 框架优化建议** | **每周六 10:00** | `com.trader-obsidian.weekly-review.plist` |
 
 日志文件：
 - `/tmp/trader-inbox.log`
 - `/tmp/trader-review.log`
 - `/tmp/trader-dashboard.log`
+- `/tmp/trader-weekly-review.log`
 
 ## 方式 B：Python 守护进程
 
