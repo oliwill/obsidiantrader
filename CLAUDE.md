@@ -38,6 +38,17 @@ Lzw/
 
 ## Standard Analysis Workflow
 
+**CRITICAL: 分析报告必须写入 Obsidian Vault，文件名格式必须正确！**
+- **正确路径**：`Config.get_wiki_dir()` → `C:\Users\Lzw\Downloads\Documents\obsidian\Lzw\Lzw\4_Trader\Analysis\`
+- **文件命名规则**：股票代码中的 `.` 和 `/` 都替换为 `_`
+  - `TEM.US` → `TEM_US.md`
+  - `600487.SH` → `600487_SH.md`
+  - `00100.HK` → `00100_HK.md`
+- **AI 写入方式**：
+  - 方式 1（推荐）：使用 `write_analysis_to_obsidian()` 函数
+  - 方式 2：使用 `Write` 工具，路径必须是 `Config.get_wiki_dir() / {STOCK_CODE_with_underscore}.md`
+- **避免重复文件**：不要既调用 `MemoryManager.init_stock_wiki()` 又用 `Write` 工具写入不同路径
+
 When user asks to analyze a stock (e.g., "分析 AAPL"):
 
 1. **Run data fetch**:
@@ -313,7 +324,8 @@ print(context)  # Full wiki + materials summary
 | Error | Cause | Fix |
 |-------|-------|-----|
 | `ModuleNotFoundError: longbridge` | SDK not installed | Normal - falls back to Yahoo Finance |
-| `WIKI_BASE_DIR not set` | .env not loaded | Run `load_dotenv()` before imports |
+| `WIKI_BASE_DIR not set` | .env not found | Ensure `.env` exists in project root with proper paths |
+| Analysis not in Obsidian | Wrong write path used | Use `write_analysis_to_obsidian()` or write to `Config.get_wiki_dir()` |
 | `TimeoutExpired` | Longbridge API hung | Increase `ANALYSIS_TIMEOUT` in .env |
 | Empty wiki context | First-time analysis | Call `init_stock_wiki()` first |
 

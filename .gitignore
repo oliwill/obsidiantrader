@@ -45,3 +45,4 @@ Thumbs.db
 
 # Memory and specific data (keep your Obsidian vault data separate if needed)
 # data/
+.claude/

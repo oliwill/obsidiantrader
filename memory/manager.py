@@ -2,7 +2,8 @@
 Memory Manager - Karpathy LLM Wiki 模式
 
 三层架构：
-  Raw Sources (data/materials/) → Wiki (data/wiki/) → Schema (本文件)
+  Raw Sources (Materials/) → Wiki (Analysis/) → Schema (本文件)
+  路径由 .env 中的 WIKI_BASE_DIR + WIKI_SUBDIR / MATERIALS_SUBDIR 决定
 
 核心原则：
   - 知识是增量编译的，不是每次重新推导

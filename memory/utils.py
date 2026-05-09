@@ -30,8 +30,11 @@ def _stock_wiki_path(stock_code: str) -> Path:
 
     Returns:
         Wiki 文件的完整路径
+
+    Note:
+        将 . 和 / 都替换为 _，保持与 Obsidian 现有命名一致（如 AAPL_US.md）
     """
-    filename = stock_code.replace('/', '_') + ".md"
+    filename = stock_code.replace('/', '_').replace('.', '_') + ".md"
     return Config.get_wiki_dir() / filename
 
 
@@ -45,7 +48,7 @@ def _stock_materials_dir(stock_code: str) -> Path:
     Returns:
         资料目录的完整路径
     """
-    dirname = stock_code.replace('/', '_')
+    dirname = stock_code.replace('/', '_').replace('.', '_')
     return Config.get_materials_dir() / dirname
 
 
