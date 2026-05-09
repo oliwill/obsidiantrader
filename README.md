@@ -1,5 +1,7 @@
 # trader-obsidian
 
+English | [简体中文](README.zh.md)
+
 A stock analysis system that uses Claude Code as the execution engine and Obsidian as the knowledge base. Drop research materials into an Inbox folder, run an analysis command, and get a structured deep-dive written directly into your Obsidian vault.
 
 ## How It Works
